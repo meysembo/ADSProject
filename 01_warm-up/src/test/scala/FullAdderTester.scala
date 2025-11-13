@@ -26,7 +26,7 @@ class FullAdderTester extends AnyFlatSpec with ChiselScalatestTester {
                 val result_carry = (a&b) | (a&cin) | (b&cin)
                 dut.io.a.poke(a.U)
                 dut.io.b.poke(b.U)
-                dut.io.cin.poke(cin.u)
+                dut.io.cin.poke(cin.U)
 
                 dut.io.s.expect(result_s.U)
                 dut.io.carry.expect(result_carry.U)

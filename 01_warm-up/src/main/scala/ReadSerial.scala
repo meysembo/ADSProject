@@ -15,11 +15,11 @@ class Controller extends Module{
   
   val io = IO(new Bundle {
     /* Define IO ports of a the component as stated in the documentation */
-    val reset_n = Input(Uint(1.W))
-    val rxd     = Input(Uint(1.W))
-    val cnt_s   = Input(Uint(1.W))
-    val cnt_en  = Output(Uint(1.W))
-    val valid   = Output(Uint(1.W))
+    val reset_n = Input(UInt(1.W))
+    val rxd     = Input(UInt(1.W))
+    val cnt_s   = Input(UInt(1.W))
+    val cnt_en  = Output(UInt(1.W))
+    val valid   = Output(UInt(1.W))
     })
 
   // internal variables
@@ -63,8 +63,8 @@ class Counter extends Module{
   
   val io = IO(new Bundle {
     /* Define IO ports of a the component as stated in the documentation */
-    val cnt_en = Input(Uint(1.W))
-    val cnt_s  = Output(Uint(1.W))
+    val cnt_en = Input(UInt(1.W))
+    val cnt_s  = Output(UInt(1.W))
     })
 
   // internal variables
@@ -72,9 +72,13 @@ class Counter extends Module{
   val idle :: start_count :: end_count :: Nil = Enum(3) // states
   val state = RegInit(idle)
 
+  // init output
+  io.cnt_s := 0.U
+
   // state machine
   switch(state){
     is(idle){
+      count := 0.U
       when(io.cnt_en === 1.U){
         state := start_count
         count := count + 1.U  // when cnt_en goes high, the first data bit is already going through
@@ -88,7 +92,7 @@ class Counter extends Module{
     }
     is(end_count){
       count := 0.U
-      cnt_s := 1.U
+      io.cnt_s := 1.U
       state := idle
     }
   }
@@ -101,8 +105,8 @@ class ShiftRegister extends Module{
   
   val io = IO(new Bundle {
     /* Define IO ports of a the component as stated in the documentation */
-    val rxd  = Input(Uint(1.W))
-    val data = Output(Uint(8.W))
+    val rxd  = Input(UInt(1.W))
+    val data = Output(UInt(8.W))
     })
 
   // internal variables
@@ -110,7 +114,7 @@ class ShiftRegister extends Module{
 
   // functionality
   reg := (reg << 1 ) + io.rxd
-  data := reg
+  io.data := reg
 }
 
 /** 
@@ -127,10 +131,10 @@ class ShiftRegister extends Module{
 class ReadSerial extends Module{
   
   val io = IO(new Bundle {
-    val reset_n = Input(Uint(1.W))
-    val rxd     = Input(Uint(1.W))
-    val valid   = Output(Uint(1.W))
-    val data    = Output(Uint(8.W))
+    val reset_n = Input(UInt(1.W))
+    val rxd     = Input(UInt(1.W))
+    val valid   = Output(UInt(1.W))
+    val data    = Output(UInt(8.W))
     })
 
 
@@ -140,12 +144,13 @@ class ReadSerial extends Module{
   val ShiftRegister = Module(new ShiftRegister())
 
   // connections between modules
-  Controller.io.cnt_en   := Counter.io.cnt_en
-  Counter.io.cnt_s       := Controller.io.cnt_s
+  Counter.io.cnt_en   := Controller.io.cnt_en
+  Controller.io.cnt_s := Counter.io.cnt_s
 
   // global I/O 
-  Controller.io.resset_n := reset_n
-  Controller.io.rxd      := rxd
-  Controller.io.valid    := valid
-  ShiftRegister.io.rxd   := rxd
+  Controller.io.reset_n := io.reset_n
+  Controller.io.rxd     := io.rxd
+  io.valid              := Controller.io.valid
+  ShiftRegister.io.rxd  := io.rxd
+  io.data               := ShiftRegister.io.data
 }

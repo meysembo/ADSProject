@@ -22,14 +22,14 @@ class HalfAdder extends Module{
   
   val io = IO(new Bundle {
     /* Define IO ports of a half adder as presented in the lecture */
-    val a = Input(Uint(1.W))
-    val b = Input(Uint(1.W))
-    val s = Output(Uint(1.W))
-    val c = Output(Uint(1.W))
+    val a = Input(UInt(1.W))
+    val b = Input(UInt(1.W))
+    val s = Output(UInt(1.W))
+    val c = Output(UInt(1.W))
     })
   /* Describe output behaviour based on the input values */
-  s = a^b
-  c = a&b
+  io.s := io.a ^ io.b
+  io.c := io.a & io.b
 }
 
 /** 
@@ -47,11 +47,11 @@ class FullAdder extends Module{
 
   val io = IO(new Bundle {
     /* Define IO ports of a half adder as presented in the lecture */
-    val a     = Input(Uint(1.W))
-    val b     = Input(Uint(1.W))
-    val cin   = Input(Uint(1.W))
-    val s     = Output(Uint(1.W))
-    val carry = Output(Uint(1.W))
+    val a     = Input(UInt(1.W))
+    val b     = Input(UInt(1.W))
+    val cin   = Input(UInt(1.W))
+    val s     = Output(UInt(1.W))
+    val carry = Output(UInt(1.W))
 
     })
 
@@ -62,16 +62,16 @@ class FullAdder extends Module{
 
   /* Describe output behaviour based on the input values and the internal signals */
   // Input to first HalfAdder
-  io.a              := HalfAdder_1.io.a
-  io.b              := HalfAdder_1.io.b
+  HalfAdder_1.io.a := io.a
+  HalfAdder_1.io.b := io.b
 
   // Input to second HalfAdder
-  HalfAdder_1.io.s  := HalfAdder_2.io.a
-  io.cin            := HalfAdder_2.io.b
+  HalfAdder_2.io.a := HalfAdder_1.io.s
+  HalfAdder_2.io.b := io.cin
 
   // Output of FullAdder
-  io.s              := HalfAdder_2.io.s
-  io.carry          =  HalfAdder_2.io.c | HalfAdder_1.io.c
+  io.s     := HalfAdder_2.io.s
+  io.carry := HalfAdder_2.io.c | HalfAdder_1.io.c
 }
 
 /** 
@@ -88,19 +88,19 @@ class FourBitAdder extends Module{
 
   val io = IO(new Bundle {
     /* Define IO ports of a 4-bit ripple-carry-adder as presented in the lecture */
-    val a0  = Input(Uint(1.W))
-    val b0  = Input(Uint(1.W))
-    val a1  = Input(Uint(1.W))
-    val b1  = Input(Uint(1.W))
-    val a2  = Input(Uint(1.W))
-    val b2  = Input(Uint(1.W))
-    val a3  = Input(Uint(1.W))
-    val b3  = Input(Uint(1.W))
-    val s0  = Output(Uint(1.W))
-    val s1  = Output(Uint(1.W))
-    val s2  = Output(Uint(1.W))
-    val s3  = Output(Uint(1.W))
-    val c   = Output(Uint(1.W))
+    val a0  = Input(UInt(1.W))
+    val b0  = Input(UInt(1.W))
+    val a1  = Input(UInt(1.W))
+    val b1  = Input(UInt(1.W))
+    val a2  = Input(UInt(1.W))
+    val b2  = Input(UInt(1.W))
+    val a3  = Input(UInt(1.W))
+    val b3  = Input(UInt(1.W))
+    val s0  = Output(UInt(1.W))
+    val s1  = Output(UInt(1.W))
+    val s2  = Output(UInt(1.W))
+    val s3  = Output(UInt(1.W))
+    val c   = Output(UInt(1.W))
     })
   /* Instanciate the full adders and one half adder based on the previously defined classes */
   val fa1 = Module(new FullAdder())
@@ -110,26 +110,26 @@ class FourBitAdder extends Module{
 
   /* Describe output behaviour based on the input values and the internal */
   //HalfAdder inputs / outputs
-  io.a0    := ha.io.a
-  io.b0    := ha.io.b
-  io.s0    := ha.io.s
-  io.ha.c  := fa1.io.cin
+  ha.io.a    := io.a0
+  ha.io.b    := io.b0
+  io.s0      := ha.io.s
+  fa1.io.cin := ha.io.c
 
   //First FullAdder
-  io.a1        := fa1.io.a1
-  io.b1        := fa1.io.b1
-  io.s1        := fa1.io.s1
-  fa1.io.carry := fa2.io.cin
+  fa1.io.a   := io.a1
+  fa1.io.b   := io.b1
+  io.s1      := fa1.io.s
+  fa2.io.cin := fa1.io.carry
 
   //Second FullAdder
-  io.a2        := fa2.io.a2
-  io.b2        := fa2.io.b2
-  io.s2        := fa2.io.s2
-  fa2.io.carry := fa3.io.cin
+  fa2.io.a   := io.a2
+  fa2.io.b   := io.b2
+  io.s2      := fa2.io.s
+  fa3.io.cin := fa2.io.carry
 
   //Third FullAdder
-  io.a3        := fa3.io.a3
-  io.b3        := fa3.io.b3
-  io.s3        := fa3.io.s3
-  fa3.io.carry := io.c
+  fa3.io.a := io.a3
+  fa3.io.b := io.b3
+  io.s3    := fa3.io.s
+  io.c     := fa3.io.carry
 }
