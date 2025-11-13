@@ -14,20 +14,46 @@ import chisel3.util._
 class Controller extends Module{
   
   val io = IO(new Bundle {
-    /* 
-     * TODO: Define IO ports of a the component as stated in the documentation
-     */
+    /* Define IO ports of a the component as stated in the documentation */
+    val reset_n = Input(Uint(1.W))
+    val rxd     = Input(Uint(1.W))
+    val cnt_s   = Input(Uint(1.W))
+    val cnt_en  = Output(Uint(1.W))
+    val valid   = Output(Uint(1.W))
     })
 
   // internal variables
-  /* 
-   * TODO: Define internal variables (registers and/or wires), if needed
-   */
+  val idle :: start :: received :: Nil = Enum(3)
+  val state = RegInit(idle)
+
+  io.cnt_en := 0.U
+  io.valid  := 0.U  // default outputs
 
   // state machine
-  /* 
-   * TODO: Describe functionality if the controller as a state machine
-   */
+  when(io.reset_n === 1.U){
+    state     := idle
+    io.valid  := 0.U             // reset states and outputs
+    io.cnt_en := 0.U
+  } .otherwise {
+    switch(state){
+      is(idle){
+        when(io.rxd === 0.U){    // detect start bit
+          state := start
+        }
+      }
+      is(start){
+        io.cnt_en := 1.U
+        state     := received
+      }
+      is(received){
+        when(io.cnt_s === 1.U) { // 8 bits have been received
+          io.valid  := 1.U       // set valid for 1 clock
+          io.cnt_en := 0.U       // stop counting
+          state     := idle
+        }
+      }
+    }
+  }
 
 }
 
@@ -36,20 +62,36 @@ class Controller extends Module{
 class Counter extends Module{
   
   val io = IO(new Bundle {
-    /* 
-     * TODO: Define IO ports of a the component as stated in the documentation
-     */
+    /* Define IO ports of a the component as stated in the documentation */
+    val cnt_en = Input(Uint(1.W))
+    val cnt_s  = Output(Uint(1.W))
     })
 
   // internal variables
-  /* 
-   * TODO: Define internal variables (registers and/or wires), if needed
-   */
+  val count = RegInit(0.U(3.W)) // 3 bits to count from 0 to 7
+  val idle :: start_count :: end_count :: Nil = Enum(3) // states
+  val state = RegInit(idle)
 
   // state machine
-  /* 
-   * TODO: Describe functionality if the counter as a state machine
-   */
+  switch(state){
+    is(idle){
+      when(io.cnt_en === 1.U){
+        state := start_count
+        count := count + 1.U  // when cnt_en goes high, the first data bit is already going through
+      }
+    }
+    is(start_count){
+      count := count + 1.U   // counts from 0 to 7 -> 8 bits
+      when(count === 7.U){
+        state := end_count
+      }
+    }
+    is(end_count){
+      count := 0.U
+      cnt_s := 1.U
+      state := idle
+    }
+  }
 
 
 }
@@ -58,20 +100,17 @@ class Counter extends Module{
 class ShiftRegister extends Module{
   
   val io = IO(new Bundle {
-    /* 
-     * TODO: Define IO ports of a the component as stated in the documentation
-     */
+    /* Define IO ports of a the component as stated in the documentation */
+    val rxd  = Input(Uint(1.W))
+    val data = Output(Uint(8.W))
     })
 
   // internal variables
-  /* 
-   * TODO: Define internal variables (registers and/or wires), if needed
-   */
+  val reg = RegInit(0.U(8.W)) // 8 bits shift reg
 
   // functionality
-  /* 
-   * TODO: Describe functionality if the shift register
-   */
+  reg := (reg << 1 ) + io.rxd
+  data := reg
 }
 
 /** 
@@ -88,25 +127,25 @@ class ShiftRegister extends Module{
 class ReadSerial extends Module{
   
   val io = IO(new Bundle {
-    /* 
-     * TODO: Define IO ports of a the component as stated in the documentation
-     */
+    val reset_n = Input(Uint(1.W))
+    val rxd     = Input(Uint(1.W))
+    val valid   = Output(Uint(1.W))
+    val data    = Output(Uint(8.W))
     })
 
 
   // instanciation of modules
-  /* 
-   * TODO: Instanciate the modules that you need
-   */
+  val Controller    = Module(new Controller())
+  val Counter       = Module(new Counter())
+  val ShiftRegister = Module(new ShiftRegister())
 
   // connections between modules
-  /* 
-   * TODO: connect the signals between the modules
-   */
+  Controller.io.cnt_en   := Counter.io.cnt_en
+  Counter.io.cnt_s       := Controller.io.cnt_s
 
   // global I/O 
-  /* 
-   * TODO: Describe output behaviour based on the input values and the internal signals
-   */
-
+  Controller.io.resset_n := reset_n
+  Controller.io.rxd      := rxd
+  Controller.io.valid    := valid
+  ShiftRegister.io.rxd   := rxd
 }

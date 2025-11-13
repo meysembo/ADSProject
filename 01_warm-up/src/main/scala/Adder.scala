@@ -21,15 +21,15 @@ import chisel3.util._
 class HalfAdder extends Module{
   
   val io = IO(new Bundle {
-    /* 
-     * TODO: Define IO ports of a half adder as presented in the lecture
-     */
+    /* Define IO ports of a half adder as presented in the lecture */
+    val a = Input(Uint(1.W))
+    val b = Input(Uint(1.W))
+    val s = Output(Uint(1.W))
+    val c = Output(Uint(1.W))
     })
-
-  /* 
-   * TODO: Describe output behaviour based on the input values
-   */
-
+  /* Describe output behaviour based on the input values */
+  s = a^b
+  c = a&b
 }
 
 /** 
@@ -46,21 +46,32 @@ class HalfAdder extends Module{
 class FullAdder extends Module{
 
   val io = IO(new Bundle {
-    /* 
-     * TODO: Define IO ports of a half adder as presented in the lecture
-     */
+    /* Define IO ports of a half adder as presented in the lecture */
+    val a     = Input(Uint(1.W))
+    val b     = Input(Uint(1.W))
+    val cin   = Input(Uint(1.W))
+    val s     = Output(Uint(1.W))
+    val carry = Output(Uint(1.W))
+
     })
 
 
-  /* 
-   * TODO: Instanciate the two half adders you want to use based on your HalfAdder class
-   */
+  /* Instanciate the two half adders you want to use based on your HalfAdder class */
+  val HalfAdder_1 = Module(new HalfAdder())
+  val HalfAdder_2 = Module(new HalfAdder())
 
+  /* Describe output behaviour based on the input values and the internal signals */
+  // Input to first HalfAdder
+  io.a              := HalfAdder_1.io.a
+  io.b              := HalfAdder_1.io.b
 
-  /* 
-   * TODO: Describe output behaviour based on the input values and the internal signals
-   */
+  // Input to second HalfAdder
+  HalfAdder_1.io.s  := HalfAdder_2.io.a
+  io.cin            := HalfAdder_2.io.b
 
+  // Output of FullAdder
+  io.s              := HalfAdder_2.io.s
+  io.carry          =  HalfAdder_2.io.c | HalfAdder_1.io.c
 }
 
 /** 
@@ -76,17 +87,49 @@ class FullAdder extends Module{
 class FourBitAdder extends Module{
 
   val io = IO(new Bundle {
-    /* 
-     * TODO: Define IO ports of a 4-bit ripple-carry-adder as presented in the lecture
-     */
+    /* Define IO ports of a 4-bit ripple-carry-adder as presented in the lecture */
+    val a0  = Input(Uint(1.W))
+    val b0  = Input(Uint(1.W))
+    val a1  = Input(Uint(1.W))
+    val b1  = Input(Uint(1.W))
+    val a2  = Input(Uint(1.W))
+    val b2  = Input(Uint(1.W))
+    val a3  = Input(Uint(1.W))
+    val b3  = Input(Uint(1.W))
+    val s0  = Output(Uint(1.W))
+    val s1  = Output(Uint(1.W))
+    val s2  = Output(Uint(1.W))
+    val s3  = Output(Uint(1.W))
+    val c   = Output(Uint(1.W))
     })
+  /* Instanciate the full adders and one half adder based on the previously defined classes */
+  val fa1 = Module(new FullAdder())
+  val fa2 = Module(new FullAdder())
+  val fa3 = Module(new FullAdder())
+  val ha  = Module(new HalfAdder())
 
-  /* 
-   * TODO: Instanciate the full adders and one half adderbased on the previously defined classes
-   */
+  /* Describe output behaviour based on the input values and the internal */
+  //HalfAdder inputs / outputs
+  io.a0    := ha.io.a
+  io.b0    := ha.io.b
+  io.s0    := ha.io.s
+  io.ha.c  := fa1.io.cin
 
+  //First FullAdder
+  io.a1        := fa1.io.a1
+  io.b1        := fa1.io.b1
+  io.s1        := fa1.io.s1
+  fa1.io.carry := fa2.io.cin
 
-  /* 
-   * TODO: Describe output behaviour based on the input values and the internal 
-   */
+  //Second FullAdder
+  io.a2        := fa2.io.a2
+  io.b2        := fa2.io.b2
+  io.s2        := fa2.io.s2
+  fa2.io.carry := fa3.io.cin
+
+  //Third FullAdder
+  io.a3        := fa3.io.a3
+  io.b3        := fa3.io.b3
+  io.s3        := fa3.io.s3
+  fa3.io.carry := io.c
 }
