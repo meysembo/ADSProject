@@ -3,6 +3,13 @@
 00500113 // ADDI x2, x0, 5
 002081b3 // ADD x3, x1, x2
 
-/* 
- * TODO: Add testcases for all R-type instructions in 'BinaryFile' and check the expected results here
- */
+40208233 // SUB  x4, x1, x2  -> x4 = -1 (0xfffffff)
+002092b3 // SLL  x5, x1, x2  -> x5 = 128 (0x80)
+0020a333 // SLT  x6, x1, x2  -> x6 = 1
+0020b3b3 // SLTU x7, x1, x2  -> x7 = 1
+0020c433 // XOR  x8, x1, x2  -> x8 = 1
+0020d4b3 // SRL  x9, x1, x2  -> x9 = 0
+4020d533 // SRA  x10, x1, x2 -> x10 = 0
+0020e5b3 // OR   x11, x1, x2 -> x11 = 5
+0020f633 // AND  x12, x1, x2 -> x12 = 4
+

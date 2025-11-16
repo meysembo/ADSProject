@@ -69,14 +69,12 @@ class RV32Icore (BinaryFile: String) extends Module {
   // CPU Registers
   // -----------------------------------------
 
-  /*
-   * TODO: Implement the program counter as a register, initialize with zero
-   */
+  val PC = RegInit(0.U(32.W)) // Implement the program counter as a register, initialize with zero
 
   val regFile = Mem(32, UInt(32.W))
-  /*
-   * TODO: hard-wire register x0 to zero
-   */
+
+  val x0 = regFile(0) // hard-wire register x0 to zero
+  x0 := 0.U
 
   // -----------------------------------------
   // Fetch
@@ -90,24 +88,41 @@ class RV32Icore (BinaryFile: String) extends Module {
   // -----------------------------------------
 
   val opcode = instr(6, 0)
-  /*
-   * TODO: Add missing fields from fetched instructions for decoding
-   */
+  val rd     = instr(11,7)
+  val funct3 = instr(14,12)
+  val rs1    = instr(19,15)
+  val rs2    = instr(24,20)
+  val funct7 = instr(31,25)
+
+  val immi     = instr(31,20)
+  val immi32   = Cat(Fill(20, immi(11)), immi) // sign-extend immediate for ADDI
+
 
   val isADD  = (opcode === "b0110011".U && funct3 === "b000".U && funct7 === "b0000000".U)
-  /*
-   * TODO: Add missing R-Type instructions here
-   */
-
-
+  val isSLT  = (opcode === "b0110011".U && funct3 === "b010".U && funct7 === "b0000000".U)
+  val isSLTU = (opcode === "b0110011".U && funct3 === "b011".U && funct7 === "b0000000".U)
+  val isAND  = (opcode === "b0110011".U && funct3 === "b111".U && funct7 === "b0000000".U)
+  val isOR   = (opcode === "b0110011".U && funct3 === "b110".U && funct7 === "b0000000".U)
+  val isXOR  = (opcode === "b0110011".U && funct3 === "b100".U && funct7 === "b0000000".U)
+  val isSLL  = (opcode === "b0110011".U && funct3 === "b001".U && funct7 === "b0000000".U)
+  val isSRL  = (opcode === "b0110011".U && funct3 === "b101".U && funct7 === "b0000000".U)
+  val isSUB  = (opcode === "b0110011".U && funct3 === "b000".U && funct7 === "b0100000".U)
+  val isSRA  = (opcode === "b0110011".U && funct3 === "b101".U && funct7 === "b0100000".U)
   val isADDI = (opcode === "b0010011".U && funct3 === "b000".U)
 
 
   // Operands
 
-   /*
-   * TODO: Add operand signals accoring to specification
-   */
+  val operandA = Wire(UInt(32.W))
+  val operandB = Wire(UInt(32.W))
+  
+
+  operandA := regFile(rs1)
+  when(isADDI) {
+    operandB := immi32
+  }.otherwise {  
+    operandB := regFile(rs2)
+    }
 
   // -----------------------------------------
   // Execute
@@ -118,13 +133,28 @@ class RV32Icore (BinaryFile: String) extends Module {
   when(isADDI) { 
     aluResult := operandA + operandB 
   }.elsewhen(isADD) {                           
-    aluResult := operandA + operandB 
+    aluResult := operandA + operandB
+  }.elsewhen(isSLT) {
+    aluResult := (operandA.asSInt < operandB.asSInt).asUInt
+  }.elsewhen(isSLTU) {
+    aluResult := (operandA < operandB)
+  }.elsewhen(isAND) {
+    aluResult := operandA & operandB
+  }.elsewhen(isOR) {
+    aluResult := operandA | operandB
+  }.elsewhen(isXOR) {
+    aluResult := operandA ^ operandB
+  }.elsewhen(isSLL) {
+    aluResult := operandA << operandB(4,0)    // shift amount is given by lower 5 bits
+  }.elsewhen(isSRL) {
+    aluResult := operandA >> operandB(4,0)
+  }.elsewhen(isSUB) {
+    aluResult := operandA - operandB
+  }.elsewhen(isSRA) {
+    aluResult := (operandA.asSInt >> operandB(4,0)).asUInt
+  }.otherwise {
+    aluResult := x0 + 0.U           // NOP
   }
-  /*
-   * TODO: Add missing R-Type instructions here. Do not forget to implement a suitable default case for
-   *       fetched instructions that are neither R-Type nor ADDI. 
-   */
-
 
   // -----------------------------------------
   // Memory
@@ -140,20 +170,12 @@ class RV32Icore (BinaryFile: String) extends Module {
   val writeBackData = Wire(UInt(32.W)) 
   writeBackData := aluResult
 
-  /*
-   * TODO: Store "writeBackData" in register "rd" in regFile
-   */
+  val regWriteBack = regFile(rd)  // Store "writeBackData" in register "rd" in regFile
+  regWriteBack := writeBackData
 
-  // Check Result
-  /*
-   * TODO: Propagate "writeBackData" to the "check_res" output for testing purposes
-   */
-  io.check_res := 0.U
+  io.check_res := writeBackData // Propagate "writeBackData" to the "check_res" output for testing purposes
 
   // Update PC
   // no jumps or branches, next PC always reads next address from IMEM
-  /*
-   * TODO: Increment PC
-   */
-
+  PC := PC + 4.U // increment PC by 4
 }
